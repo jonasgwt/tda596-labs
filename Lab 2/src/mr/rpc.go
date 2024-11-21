@@ -6,8 +6,11 @@ package mr
 // remember to capitalize all names.
 //
 
-import "os"
-import "strconv"
+import (
+	"os"
+	"strconv"
+	"time"
+)
 
 //
 // example to show how to declare the arguments
@@ -20,6 +23,20 @@ type ExampleArgs struct {
 
 type ExampleReply struct {
 	Y int
+}
+
+type Task struct {
+	ID        int
+	File      string
+	TaskType  string // "map" or "reduce"
+	NumOfFiles   int    // Number of files to create or read from
+}
+
+type TaskStatus struct {
+	Assigned   bool      // Whether the task is currently assigned
+	WorkerID   int       // ID of the worker assigned to this task
+	StartTime  time.Time // When the task was assigned
+	Completed  bool      // Whether the task has been completed
 }
 
 // Add your RPC definitions here.

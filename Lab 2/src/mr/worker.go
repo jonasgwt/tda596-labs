@@ -1,10 +1,14 @@
 package mr
 
-import "fmt"
-import "log"
-import "net/rpc"
-import "hash/fnv"
-
+import (
+	"encoding/json"
+	"fmt"
+	"hash/fnv"
+	"log"
+	"net/rpc"
+	"os"
+	"time"
+)
 
 //
 // Map functions return a slice of KeyValue.
@@ -28,14 +32,127 @@ func ihash(key string) int {
 //
 // main/mrworker.go calls this function.
 //
-func Worker(mapf func(string, string) []KeyValue,
-	reducef func(string, []string) string) {
+func Worker(mapf func(string, string) []KeyValue, reducef func(string, []string) string) {
+	for {
+		// Request a task from the coordinator
+		task := RequestTask()
 
-	// Your worker implementation here.
+		// Handle different task types
+		switch task.TaskType {
+		case "map":
+			ExecuteMapTask(mapf, task)
+		case "reduce":
+			ExecuteReduceTask(reducef, task)
+		case "wait":
+			// Sleep briefly and then re-request a task
+			time.Sleep(time.Second)
+		case "exit":
+			// Exit the worker gracefully
+			return
+		}
+	}
+}
 
-	// uncomment to send the Example RPC to the coordinator.
-	// CallExample()
+func RequestTask() Task {
+	args := struct{}{}
+	reply := Task{}
 
+	ok := call("Coordinator.AssignTask", &args, &reply)
+	if !ok {
+		log.Fatal("Failed to contact coordinator")
+	}
+
+	return reply
+}
+
+func ExecuteMapTask(mapf func(string, string) []KeyValue, task Task) {
+	// Read the input file
+	content, err := os.ReadFile(task.File)
+	if err != nil {
+		log.Fatalf("Cannot read file %v: %v", task.File, err)
+	}
+
+	// Call the map function
+	kva := mapf(task.File, string(content))
+
+	// Partition the key-value pairs into nReduce buckets
+	intermediateFiles := make([]*os.File, task.NumOfFiles)
+	encoders := make([]*json.Encoder, task.NumOfFiles)
+
+	for i := 0; i < task.NumOfFiles; i++ {
+		filename := fmt.Sprintf("mr-%d-%d", task.ID, i)
+		file, err := os.Create(filename)
+		if err != nil {
+			log.Fatalf("Cannot create file %v: %v", filename, err)
+		}
+		intermediateFiles[i] = file
+		encoders[i] = json.NewEncoder(file)
+	}
+
+	for _, kv := range kva {
+		bucket := ihash(kv.Key) % task.NumOfFiles
+		err := encoders[bucket].Encode(&kv)
+		if err != nil {
+			log.Fatalf("Cannot write to intermediate file: %v", err)
+		}
+	}
+
+	// Close all intermediate files
+	for _, file := range intermediateFiles {
+		file.Close()
+	}
+
+	// Notify the coordinator that the task is done
+	NotifyTaskDone(task)
+}
+
+func ExecuteReduceTask(reducef func(string, []string) string, task Task) {
+	// Collect intermediate files for this reduce task
+	intermediate := make(map[string][]string)
+
+	for i := 0; i < task.NumOfFiles; i++ {
+		filename := fmt.Sprintf("mr-%d-%d", i, task.ID)
+		file, err := os.Open(filename)
+		if err != nil {
+			log.Fatalf("Cannot open file %v: %v", filename, err)
+		}
+
+		decoder := json.NewDecoder(file)
+		for {
+			var kv KeyValue
+			if err := decoder.Decode(&kv); err != nil {
+				break
+			}
+			intermediate[kv.Key] = append(intermediate[kv.Key], kv.Value)
+		}
+		file.Close()
+	}
+
+	// Perform the reduce operation
+	outputFilename := fmt.Sprintf("mr-out-%d", task.ID)
+	outputFile, err := os.Create(outputFilename)
+	if err != nil {
+		log.Fatalf("Cannot create output file %v: %v", outputFilename, err)
+	}
+	defer outputFile.Close()
+
+	for key, values := range intermediate {
+		result := reducef(key, values)
+		fmt.Fprintf(outputFile, "%v %v\n", key, result)
+	}
+
+	// Notify the coordinator that the task is done
+	NotifyTaskDone(task)
+}
+
+func NotifyTaskDone(task Task) {
+	args := task
+	reply := struct{}{}
+
+	ok := call("Coordinator.ReportTaskDone", &args, &reply)
+	if !ok {
+		log.Fatalf("Failed to notify coordinator about task completion")
+	}
 }
 
 //
