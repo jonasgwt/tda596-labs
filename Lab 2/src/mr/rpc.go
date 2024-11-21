@@ -17,14 +17,6 @@ import (
 // and reply for an RPC.
 //
 
-type ExampleArgs struct {
-	X int
-}
-
-type ExampleReply struct {
-	Y int
-}
-
 type Task struct {
 	ID        int
 	File      string
