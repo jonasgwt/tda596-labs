@@ -12,11 +12,6 @@ import (
 	"time"
 )
 
-//
-// example to show how to declare the arguments
-// and reply for an RPC.
-//
-
 type Task struct {
 	ID        int
 	File      string
@@ -30,8 +25,6 @@ type TaskStatus struct {
 	StartTime  time.Time // When the task was assigned
 	Completed  bool      // Whether the task has been completed
 }
-
-// Add your RPC definitions here.
 
 
 // Cook up a unique-ish UNIX-domain socket name

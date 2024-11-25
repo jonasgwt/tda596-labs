@@ -34,10 +34,8 @@ func ihash(key string) int {
 //
 func Worker(mapf func(string, string) []KeyValue, reducef func(string, []string) string) {
 	for {
-		// Request a task from the coordinator
 		task := RequestTask()
 
-		// Handle different task types
 		switch task.TaskType {
 		case "map":
 			ExecuteMapTask(mapf, task)
@@ -47,7 +45,7 @@ func Worker(mapf func(string, string) []KeyValue, reducef func(string, []string)
 			// Sleep briefly and then re-request a task
 			time.Sleep(time.Second)
 		case "exit":
-			// Exit the worker gracefully
+			// Exit the worker
 			return
 		}
 	}
