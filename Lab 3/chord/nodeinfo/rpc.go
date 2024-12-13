@@ -4,12 +4,11 @@ import (
 	"chord/helpers"
 	"fmt"
 	"math/big"
-	"net/rpc"
 )
 
 // FindSuccessorRPC is the RPC wrapper for FindSuccessor.
 func (n *NodeInfo) FindSuccessorRPC(id *big.Int, successor *NodeInfo) error {
-	client, err := rpc.Dial("tcp", n.Address)
+	client, err := helpers.Dial(n.Address)
 	if err != nil { return fmt.Errorf("failed to connect to successor: %w", err) }
 	defer client.Close()
 	return client.Call("Node.FindSuccessor", id, successor)
