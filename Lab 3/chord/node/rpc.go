@@ -114,14 +114,6 @@ func (n *Node) GetPredecessor(_ *struct{}, predecessor *nodeinfo.NodeInfo) error
 	return nil
 }
 
-// GetSuccessor is called to get the successors of the current node
-func (n *Node) GetSuccessorList(_ *struct{}, successorList *[]*nodeinfo.NodeInfo) error {
-	n.mutex.Lock()
-	defer n.mutex.Unlock()
-	*successorList = n.SuccessorList
-	return nil
-}
-
 // CheckPredecessor verifies that the predecessor is alive.
 func (n *Node) CheckPredecessor() {
 	n.mutex.Lock()
@@ -194,11 +186,4 @@ func (n *Node) PrintState() {
 			fmt.Printf("%d: %s (%s)\n", i, finger.ID.Text(16), finger.Address)
 		}
 	}
-
-	// !! TEST CODE !!
-	fmt.Printf("Files: %v\n", n.Files)
-	for key, value := range n.Files {
-		fmt.Printf("File: %s, Content: %s\n", key, value)
-	}
-	// !! TEST CODE !!
 }

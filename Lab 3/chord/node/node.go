@@ -2,9 +2,8 @@ package node
 
 import (
 	"chord/nodeinfo"
+	"crypto/sha1"
 	"math/big"
-	"strconv"
-	"strings"
 	"sync"
 )
 
@@ -17,7 +16,6 @@ type Node struct {
 	ID           *big.Int
 	Address      string
 	Successor    *nodeinfo.NodeInfo
-	SuccessorList []*nodeinfo.NodeInfo
 	Predecessor  *nodeinfo.NodeInfo
 	FingerTable  []*nodeinfo.NodeInfo
 	Files        map[string]string
@@ -25,23 +23,10 @@ type Node struct {
 }
 
 func NewNode(address string) *Node {
-	// !! ACTUAL CODE UNCOMMENT THIS LATER !!
-	// hash := sha1.Sum([]byte(address))
-	// !! ACTUAL CODE UNCOMMENT THIS LATER !!
-
-	// !! TEST CODE !!
-	// split by : and take the last part
-	parts := strings.Split(address, ":")
-	port := parts[len(parts)-1]
-	// convert to int
-	portInt, _ := strconv.Atoi(port)
-	portInt = portInt % 11
-	// convert to big int
-	portIntBig := big.NewInt(int64(portInt))
-	// !! TEST CODE !!
+	hash := sha1.Sum([]byte(address))
 
 	node := &Node{
-		ID:          portIntBig,
+		ID:          new(big.Int).SetBytes(hash[:]),
 		Address:     address,
 		FingerTable: make([]*nodeinfo.NodeInfo, M),
 		Files:       make(map[string]string),
