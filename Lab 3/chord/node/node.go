@@ -8,7 +8,7 @@ import (
 )
 
 // Constants
-const M = 8 // SHA-1 output size in bits
+const M = 16 // SHA-1 output size in bits
 const R = 2 // Number of successors to store for each node
 
 // Node represents a Chord node.
@@ -24,9 +24,10 @@ type Node struct {
 
 func NewNode(address string) *Node {
 	hash := sha1.Sum([]byte(address))
+	maxID := new(big.Int).Exp(big.NewInt(2), big.NewInt(M), nil)
 
 	node := &Node{
-		ID:          new(big.Int).SetBytes(hash[:]),
+		ID:          new(big.Int).Mod(new(big.Int).SetBytes(hash[:]), maxID),
 		Address:     address,
 		FingerTable: make([]*nodeinfo.NodeInfo, M),
 		Files:       make(map[string]string),
